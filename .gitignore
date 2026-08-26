@@ -1,0 +1,18 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.db
+*.db-shm
+*.db-wal
+/data/
+/logs/
+/work/
+htmlcov/
+.coverage
+
+# Integrated component generated assets
+/packages/modular_rag_mcp/data/
+/packages/modular_rag_mcp/cache/
+/packages/modular_rag_mcp/logs/

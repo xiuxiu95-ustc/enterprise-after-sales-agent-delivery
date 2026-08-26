@@ -1,0 +1,3 @@
+-r requirements.txt
+-e ./packages/slot_extractor
+-e ./packages/modular_rag_mcp

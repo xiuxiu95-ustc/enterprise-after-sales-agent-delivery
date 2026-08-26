@@ -1,0 +1,89 @@
+{
+  "version": "2.4",
+  "business_hours": {
+    "open": "09:00",
+    "close": "21:00"
+  },
+  "fields": {
+    "engineer_level_preference": {
+      "allowed_values": ["standard", "expert", null]
+    },
+    "engineer_level": {
+      "allowed_values": ["standard", "expert", null]
+    },
+    "engineer_status": {
+      "allowed_values": [
+        "not_checked",
+        "available",
+        "unavailable",
+        "not_found",
+        "no_match"
+      ]
+    },
+    "reply_type": {
+      "allowed_values": [
+        "handoff",
+        "ask_start_time",
+        "ask_duration",
+        "ask_start_time_and_duration",
+        "confirm_available",
+        "inform_unavailable",
+        "inform_not_found",
+        "inform_no_match",
+        "booking_authorized",
+        "acknowledge_result",
+        "appointment_paused"
+      ]
+    }
+  },
+  "completion": {
+    "allowed_missing_slots": ["start_time", "duration_minutes"],
+    "missing_slot_order": ["start_time", "duration_minutes"]
+  },
+  "reply": {
+    "allowed_acts": [
+      "ask_for_start_time",
+      "ask_for_duration",
+      "inform_engineer_available",
+      "request_confirmation",
+      "inform_engineer_unavailable",
+      "inform_engineer_not_found",
+      "inform_no_match",
+      "acknowledge_booking_authorization",
+      "acknowledge_result",
+      "acknowledge_pause",
+      "claim_booking_success"
+    ],
+    "allowed_required_fields": [
+      "engineer_name",
+      "start_time",
+      "duration_minutes",
+      "preferences"
+    ]
+  },
+  "facts": {
+    "engineers": [
+      {
+        "name": "王芳",
+        "level": "standard",
+        "specialties": ["网络", "硬件", "软件"]
+      },
+      {
+        "name": "李明",
+        "level": "expert",
+        "specialties": ["数据库", "软件", "硬件"]
+      }
+    ]
+  },
+  "tools": {
+    "find_engineers": {
+      "arguments": [
+        "engineer_name",
+        "start_time",
+        "duration_minutes",
+        "engineer_level_preference",
+        "preferences"
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+name: quality-gate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-and-evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m compileall -q .
+      - run: python scripts/verify_repository.py
+      - run: pytest -m "unit or integration or e2e"
+      - run: python -m evaluation.runner --fail-on-gate
+
+  integrated-components:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-integrated.txt
+      - run: pytest packages/slot_extractor -q
+      - run: pytest packages/modular_rag_mcp/tests/unit -q
+      - run: pytest packages/modular_rag_mcp/tests/integration/test_mcp_server.py packages/modular_rag_mcp/tests/e2e/test_mcp_client.py -q

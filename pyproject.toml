@@ -1,0 +1,23 @@
+[project]
+name = "enterprise-after-sales-agent"
+version = "3.0.0"
+description = "Enterprise after-sales customer service and appointment multi-agent system"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+asyncio_mode = "auto"
+markers = [
+  "unit: deterministic unit tests",
+  "integration: database and API integration tests",
+  "e2e: end-to-end business flows",
+]
+
+[tool.coverage.run]
+source = ["agents", "api", "services", "db"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 75

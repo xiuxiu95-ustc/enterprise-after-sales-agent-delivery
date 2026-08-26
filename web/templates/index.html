@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>企业售后智能服务台</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">ENTERPRISE AFTER-SALES COPILOT</p>
+      <h1>企业售后智能服务台</h1>
+      <p class="subtitle">知识咨询、故障受理、工程师预约与服务画像统一入口</p>
+    </div>
+    <span id="health" class="status">正在检查服务</span>
+  </header>
+  <main>
+    <section class="metrics">
+      <article><span>协作流</span><strong>5 阶段</strong><small>讨论 · 执行 · 复核 · 交付 · 完成</small></article>
+      <article><span>上下文</span><strong>最近 10 轮</strong><small>60% 自动滚动摘要</small></article>
+      <article><span>预约写入</span><strong>幂等 + 资源槽</strong><small>数据库原子防冲突</small></article>
+      <article><span>知识可信度</span><strong>RAG MCP</strong><small>结构化引用与拒答</small></article>
+    </section>
+    <section class="workspace">
+      <div class="chat-panel">
+        <div class="panel-title"><h2>智能客服</h2><span id="sessionLabel">新会话</span></div>
+        <div id="messages" class="messages">
+          <div class="message assistant">您好。我可以处理售后政策、故障排查、上门/远程服务预约和偏好分析。</div>
+        </div>
+        <div id="progress" class="progress"></div>
+        <form id="chatForm">
+          <textarea id="messageInput" maxlength="8000" placeholder="例如：预约明天下午 2 点上门维修网络，2 小时，地址北京" required></textarea>
+          <div class="form-row">
+            <input id="userId" value="demo-user" aria-label="用户标识">
+            <button type="submit">发送</button>
+          </div>
+        </form>
+      </div>
+      <aside>
+        <h2>可办理事项</h2>
+        <button class="suggestion">保修上门费用怎么规定？</button>
+        <button class="suggestion">预约明天下午 2 点上门维修网络，2 小时，地址北京</button>
+        <button class="suggestion">查看我的服务偏好画像</button>
+        <div class="notice">
+          <strong>关键操作需确认</strong>
+          <p>预约写入前会展示工程师、时间和时长；只有明确确认才会落库。</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <script>
+    const messages = document.getElementById('messages');
+    const progress = document.getElementById('progress');
+    let sessionId = null;
+    const addMessage = (role, text) => {
+      const node = document.createElement('div');
+      node.className = `message ${role}`;
+      node.textContent = text;
+      messages.appendChild(node);
+      messages.scrollTop = messages.scrollHeight;
+      return node;
+    };
+    async function ensureSession(userId) {
+      if (sessionId) return;
+      const response = await fetch('/api/v1/sessions', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:userId})});
+      const data = await response.json();
+      sessionId = data.id;
+      document.getElementById('sessionLabel').textContent = `会话 ${sessionId.slice(0,8)}`;
+    }
+    async function send(text) {
+      const userId = document.getElementById('userId').value.trim() || 'demo-user';
+      await ensureSession(userId);
+      addMessage('user', text);
+      const reply = addMessage('assistant', '');
+      progress.textContent = '主管 Agent 正在规划…';
+      const response = await fetch('/api/v1/chat/stream', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:userId, session_id:sessionId, message:text})});
+      if (!response.ok) { reply.textContent = '请求失败，请稍后重试。'; return; }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, {stream:true});
+        const blocks = buffer.split('\n\n');
+        buffer = blocks.pop();
+        for (const block of blocks) {
+          const event = (block.match(/^event: (.+)$/m)||[])[1];
+          const raw = (block.match(/^data: (.+)$/m)||[])[1];
+          if (!raw) continue;
+          const data = JSON.parse(raw);
+          if (event === 'text.delta') reply.textContent += data.text;
+          if (event === 'progress') progress.textContent = `当前阶段：${data.phase}`;
+          if (event === 'tool.started') progress.textContent = `正在调用：${data.tool}`;
+          if (event === 'run.completed') progress.textContent = '处理完成，已写入可审计终态';
+          if (event === 'run.failed') progress.textContent = `处理失败：${data.error_code}`;
+        }
+      }
+    }
+    document.getElementById('chatForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const input = document.getElementById('messageInput');
+      const value = input.value.trim();
+      if (value) send(value);
+      input.value = '';
+    });
+    document.querySelectorAll('.suggestion').forEach(button => button.addEventListener('click', () => send(button.textContent)));
+    fetch('/api/v1/health').then(value => value.json()).then(data => {
+      const node = document.getElementById('health');
+      node.textContent = data.status === 'ok' ? '服务正常' : '服务降级';
+      node.classList.add(data.status === 'ok' ? 'ok' : 'warn');
+    }).catch(() => document.getElementById('health').textContent = '服务不可用');
+  </script>
+</body>
+</html>
+

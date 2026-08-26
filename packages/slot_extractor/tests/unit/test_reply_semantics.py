@@ -1,0 +1,156 @@
+import pytest
+
+from slot_extractor.evaluation.reply_semantics import (
+    has_speech_act,
+    max_reference_similarity,
+    normalize_reply,
+    semantic_reply_score,
+)
+from slot_extractor.schemas.sample import ReplyExpectations
+
+
+def test_normalize_reply_maps_duration_synonyms() -> None:
+    assert normalize_reply("可以售后服务一小时") == normalize_reply("可以售后服务60分钟")
+    assert normalize_reply("安排半小时") == normalize_reply("安排30分钟")
+
+
+def test_normalize_reply_maps_common_chinese_time_numerals() -> None:
+    assert normalize_reply("明天下午两点") == normalize_reply("明天下午2点")
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "您确认一下可以吗？",
+        "这个安排您看可以吗？",
+        "需要为您安排吗？",
+    ],
+)
+def test_detects_confirmation_request_paraphrases(text: str) -> None:
+    assert has_speech_act(text, "request_confirmation")
+
+
+def test_detects_premature_booking_success_claim() -> None:
+    assert has_speech_act("已经帮您预约成功了", "claim_booking_success")
+    assert has_speech_act("好的，王芳工程师的预约已成功。", "claim_booking_success")
+    assert has_speech_act(
+        "好的，已确认预约王芳工程师明天下午两点为您安排服务。",
+        "claim_booking_success",
+    )
+
+
+def test_detects_pause_acknowledgement() -> None:
+    assert has_speech_act("好的，暂时不给您预约，需要时再告诉我。", "acknowledge_pause")
+
+
+@pytest.mark.parametrize(
+    ("text", "act"),
+    [
+        ("售后服务时长您方便说一下吗？", "ask_for_duration"),
+        ("王芳明天下午两点可以服务，您确认吗？", "inform_engineer_available"),
+        ("抱歉，未能找到陈静工程师。", "inform_engineer_not_found"),
+        ("目前没有找到会数据库的标准工程师。", "inform_no_match"),
+        ("已为您暂停预约，可随时重新安排。", "acknowledge_pause"),
+    ],
+)
+def test_detects_dataset_reply_paraphrases(text: str, act: str) -> None:
+    assert has_speech_act(text, act)
+
+
+@pytest.mark.parametrize(
+    ("text", "act"),
+    [
+        ("周末下午的具体时间您方便说一下吗？", "ask_for_start_time"),
+        ("已找到王芳工程师，明天下午两点进行售后服务。", "inform_engineer_available"),
+        ("已授权创建预约", "acknowledge_booking_authorization"),
+    ],
+)
+def test_detects_additional_valid_paraphrases(text: str, act: str) -> None:
+    assert has_speech_act(text, act)
+
+
+def test_unavailable_wording_is_not_also_available() -> None:
+    text = "李明工程师在明天下午三点不可用。"
+
+    assert has_speech_act(text, "inform_engineer_unavailable")
+    assert not has_speech_act(text, "inform_engineer_available")
+
+
+def test_common_natural_paraphrases_match_required_acts() -> None:
+    assert has_speech_act("请问您想预约什么具体时间？", "ask_for_start_time")
+    assert has_speech_act("王芳工程师明天下午可以提供60分钟服务。", "inform_engineer_available")
+    assert has_speech_act("李明工程师该时段无法提供服务。", "inform_engineer_unavailable")
+    assert has_speech_act("未找到名为陈静的工程师。", "inform_engineer_not_found")
+    assert has_speech_act("好的，已确认按该方案提交预约。", "acknowledge_booking_authorization")
+    assert has_speech_act("请上层创建预约。", "acknowledge_booking_authorization")
+    assert has_speech_act(
+        "李明工程师可在6月10日上午10点提供60分钟服务。",
+        "inform_engineer_available",
+    )
+
+
+def test_detects_direct_request_for_appointment_date_and_start_time() -> None:
+    assert has_speech_act("请告诉我具体预约日期和开始时间。", "ask_for_start_time")
+    assert has_speech_act("请问您想预约具体日期和时间？", "ask_for_start_time")
+
+
+def test_confirming_duration_before_question_is_not_booking_success() -> None:
+    text = "好的，已确认60分钟服务。请问您想预约具体哪一天、几点开始？"
+
+    assert has_speech_act(text, "ask_for_start_time")
+    assert not has_speech_act(text, "claim_booking_success")
+
+
+def test_reference_similarity_accepts_paraphrase_better_than_unrelated_text() -> None:
+    references = (
+        "请问您想什么时候过来呢？",
+        "您希望预约什么时间？",
+    )
+
+    paraphrase = max_reference_similarity("您打算几点过来？", references)
+    unrelated = max_reference_similarity("今天天气不错。", references)
+
+    assert paraphrase > unrelated
+
+
+def test_semantic_reply_score_requires_all_acts_and_no_forbidden_act() -> None:
+    expectations = ReplyExpectations(
+        required_acts=("inform_engineer_available", "request_confirmation"),
+        forbidden_acts=("claim_booking_success",),
+        required_fields=("engineer_name",),
+        references=("王芳工程师有空，您确认吗？",),
+    )
+
+    score, passed, detail = semantic_reply_score("王芳工程师有空，这个安排您看可以吗？", expectations)
+
+    assert score >= 0.7
+    assert passed is True
+    assert "required=2/2" in detail
+
+
+def test_semantic_reply_score_rejects_forbidden_claim() -> None:
+    expectations = ReplyExpectations(
+        required_acts=("inform_engineer_available",),
+        forbidden_acts=("claim_booking_success",),
+        required_fields=(),
+        references=("王芳工程师有空。",),
+    )
+
+    _, passed, detail = semantic_reply_score("王芳工程师有空，已经预约成功。", expectations)
+
+    assert passed is False
+    assert "forbidden=claim_booking_success" in detail
+
+
+def test_semantic_reply_score_accepts_full_act_coverage_with_low_text_overlap() -> None:
+    expectations = ReplyExpectations(
+        required_acts=("acknowledge_pause",),
+        forbidden_acts=("claim_booking_success",),
+        required_fields=(),
+        references=("好的，这次先不预约，需要时再联系我。",),
+    )
+
+    _, passed, detail = semantic_reply_score("已暂停预约，您可随时重新安排。", expectations)
+
+    assert passed is True
+    assert "required=1/1" in detail

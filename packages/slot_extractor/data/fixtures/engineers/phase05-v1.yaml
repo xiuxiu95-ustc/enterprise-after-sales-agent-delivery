@@ -1,0 +1,16 @@
+version: phase05-v1
+date: 2026-08-12
+engineers:
+  - name: 王芳
+    level: standard
+    specialties: [网络, 硬件, 软件, 紧急级别]
+    availability:
+      - {start: "2026-08-13 09:00", end: "2026-08-13 12:00"}
+      - {start: "2026-08-13 14:00", end: "2026-08-13 18:00"}
+      - {start: "2026-08-14 10:00", end: "2026-08-14 17:00"}
+  - name: 李明
+    level: expert
+    specialties: [数据库, 软件, 硬件, 常规级别]
+    availability:
+      - {start: "2026-08-13 10:00", end: "2026-08-13 14:00"}
+      - {start: "2026-08-14 13:00", end: "2026-08-14 20:00"}
