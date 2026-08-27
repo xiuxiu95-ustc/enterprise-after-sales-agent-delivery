@@ -1,6 +1,6 @@
 # API 清单与契约
 
-所有业务接口位于 `/api/v1`，当前有 28 个路径。交互式 schema 以 `/docs` 的 OpenAPI 为准。
+所有业务接口位于 `/api/v1`，当前有 29 个路径。交互式 schema 以 `/docs` 的 OpenAPI 为准。
 
 ## 会话与 Agent
 
@@ -109,4 +109,3 @@ X-Confirm-Token: confirmed
 ```
 
 这些 header 是本地参考实现。生产中角色与确认票据必须由受信网关/JWT claims 注入，不能相信浏览器任意填写 `X-Role`。
-

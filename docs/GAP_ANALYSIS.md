@@ -68,7 +68,7 @@ SHIFT 的 Node Provider、CLI 进程监督和前端不能直接搬到 FastAPI �
 | 权限/安全 | CORS `*`、无授权 | 角色权限、确认、参数限制、工具白名单、回环监听、脱敏 | `services/security.py`, `config/settings.py` |
 | Trace/审计 | 普通日志 | duration/token/candidates/rank/steps/span + 审计 allowlist | `Trace`, `TraceSpan`, `AuditLog` |
 | EDD | 4 个旧业务测试文件 | 分层 cases、失败回归表、CI 阈值门禁 | `evaluation/`, `tests/`, `.github/workflows/ci.yml` |
-| API | 功能分散且字段旧 | 28 个 `/api/v1` 路径 | `api/routes.py` |
+| API | 功能分散且字段旧 | 29 个 `/api/v1` 路径 | `api/routes.py` |
 
 ## 3. 未直接复用项
 

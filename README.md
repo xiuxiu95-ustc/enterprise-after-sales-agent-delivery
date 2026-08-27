@@ -20,7 +20,7 @@
 ```text
 .
 ├── web/                 # 服务台页面
-├── api/                 # FastAPI schema、依赖与 28 个 API 路径
+├── api/                 # FastAPI schema、依赖与 29 个 API 路径
 ├── agents/              # 主管 Agent、专业 Agent、handoff 合同
 ├── services/            # 编排、工作流、预约、记忆、RAG、安全、恢复
 ├── db/                  # SQLAlchemy 模型与 Repository Pattern
@@ -89,6 +89,7 @@ python -m evaluation.runner --fail-on-gate
 - [API 清单](docs/API.md)
 - [EDD 与 CI 门禁](docs/EDD.md)
 - [测试矩阵与验证结果](docs/TESTING.md)
+- [数据证据与面试答辩手册](docs/DATA_EVIDENCE_INTERVIEW.md)
 - [故障处理与运行手册](docs/RUNBOOK.md)
 - [性能和容量估算](docs/CAPACITY.md)
 - [秋招面试深挖题库与标准回答](docs/INTERVIEW_GUIDE.md)
